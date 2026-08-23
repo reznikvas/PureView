@@ -1,0 +1,100 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+:root {
+  color-scheme: dark;
+  font: 16px/1.55 system-ui, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: #0d1017;
+  color: #f7f8fa;
+}
+
+main {
+  box-sizing: border-box;
+  width: min(680px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 64px 0;
+}
+
+img {
+  display: block;
+  margin: 0 auto 20px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: clamp(28px, 5vw, 40px);
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.lead {
+  color: #d5dae5;
+  font-size: 18px;
+}
+
+section,
+.limited-use,
+.consent {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border: 1px solid #2b3342;
+  border-radius: 12px;
+  background: #151922;
+}
+
+ul {
+  margin: 0;
+  padding-left: 22px;
+  color: #c8ceda;
+}
+
+.limited-use {
+  color: #c8ceda;
+  font-size: 14px;
+}
+
+.consent {
+  display: flex;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.consent input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #5b8cff;
+}
+
+button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #5b8cff;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+#result,
+.note {
+  text-align: center;
+  color: #aeb6c5;
+  font-size: 14px;
+}

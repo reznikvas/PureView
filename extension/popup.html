@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PureView</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <h1>PureView</h1>
+      <p id="status">Checking this page…</p>
+      <button id="select" type="button" disabled>Select an element</button>
+      <button id="clear" class="secondary danger" type="button">Reset filters for this site</button>
+      <button id="consent" type="button" hidden>Review privacy disclosure</button>
+      <p class="hint">Each selection adds another element. Press ↑ to select a larger container, then reload the page.</p>
+      <p class="privacy-link"><a href="onboarding.html" target="_blank">Privacy and data use</a></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

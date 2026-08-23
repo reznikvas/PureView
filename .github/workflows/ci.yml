@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check extension/background.js
+          node --check extension/content.js
+          node --check extension/onboarding.js
+          node --check extension/popup.js
+          node --check tests/background.test.js
+          node --check tests/content.test.js
+          node --check tests/popup.test.js
+
+      - name: Run tests
+        run: |
+          node tests/background.test.js
+          node tests/content.test.js
+          node tests/popup.test.js
+
+      - name: Check Python syntax
+        run: python -m py_compile main.py scripts/build_release.py scripts/prepare_store_assets.py
+
+      - name: Build Chrome package
+        run: python scripts/build_release.py
+
+      - name: Upload validated package
+        uses: actions/upload-artifact@v4
+        with:
+          name: pureview-chrome
+          path: dist/*.zip
+          if-no-files-found: error

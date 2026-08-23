@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Welcome to PureView</title>
+    <link rel="stylesheet" href="onboarding.css">
+  </head>
+  <body>
+    <main>
+      <img src="icons/icon128.png" width="96" height="96" alt="PureView">
+      <h1>Before you use PureView</h1>
+      <p class="lead">PureView needs access to website content and browsing activity to provide its single purpose: letting you select page elements and automatically hiding everything else.</p>
+
+      <section>
+        <h2>What PureView handles</h2>
+        <ul>
+          <li>The origin and path of pages where you save a filter.</li>
+          <li>CSS selectors, short element labels, and timestamps for elements you select.</li>
+          <li>Page DOM content temporarily, only to highlight elements and apply your saved allowlist.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>How it is used</h2>
+        <ul>
+          <li>Settings are stored only on this device in <code>chrome.storage.local</code>.</li>
+          <li>No data is sent to the developer or any third party.</li>
+          <li>There are no analytics, accounts, advertisements, or remote code.</li>
+          <li>You can delete a site's rules at any time from the PureView popup.</li>
+        </ul>
+      </section>
+
+      <p class="limited-use">PureView's use of information received from Chrome APIs complies with the Chrome Web Store User Data Policy, including the Limited Use requirements.</p>
+
+      <label class="consent">
+        <input id="agreement" type="checkbox">
+        <span>I understand and agree to this use of website content and browsing activity.</span>
+      </label>
+
+      <button id="accept" type="button" disabled>Agree and enable PureView</button>
+      <p id="result" role="status" aria-live="polite"></p>
+      <p class="note">If you do not agree, close this tab. PureView will remain inactive.</p>
+    </main>
+    <script src="onboarding.js"></script>
+  </body>
+</html>

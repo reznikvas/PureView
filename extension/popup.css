@@ -1,0 +1,69 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+:root {
+  color-scheme: dark;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+body {
+  width: 290px;
+  margin: 0;
+  background: #11141b;
+  color: #f7f8fa;
+}
+
+main {
+  padding: 18px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+p {
+  margin: 0 0 14px;
+  color: #c8ceda;
+}
+
+button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #5b8cff;
+  color: white;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #292f3d;
+}
+
+button.danger:not(:disabled) {
+  color: #ffb7b7;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hint {
+  margin: 14px 0 0;
+  color: #858e9f;
+  font-size: 12px;
+}
+
+.privacy-link {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+a {
+  color: #9db8ff;
+}

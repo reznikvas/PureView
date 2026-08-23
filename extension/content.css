@@ -1,0 +1,42 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+
+html[data-pureview-loading="true"] {
+  visibility: hidden !important;
+}
+
+[data-pureview-hidden="true"] {
+  display: none !important;
+}
+
+.pureview-picker-hover {
+  outline: 3px solid #5b8cff !important;
+  outline-offset: 2px !important;
+  cursor: crosshair !important;
+}
+
+#pureview-picker-help,
+#pureview-toast {
+  all: initial !important;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  box-sizing: border-box !important;
+  max-width: min(480px, calc(100vw - 32px)) !important;
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+  background: #151922 !important;
+  color: #f7f8fa !important;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 35%) !important;
+  font: 13px/1.45 system-ui, sans-serif !important;
+}
+
+#pureview-picker-help {
+  top: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none !important;
+}
+
+#pureview-toast {
+  right: 16px !important;
+  bottom: 16px !important;
+}

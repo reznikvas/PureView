@@ -1,0 +1,27 @@
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Build output
+dist/
+*.crx
+*.pem
+*.zip
+
+# Local Chrome profiles and logs
+.chrome-profile/
+chrome-profile/
+chrome_debug.log
+
+# Local environment files
+.env
+.env.*
+!.env.example
