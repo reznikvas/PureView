@@ -7,10 +7,11 @@
 PureView is a privacy-first Chrome extension that lets you choose the useful
 parts of a web page and hide everything else. Instead of maintaining a list of
 advertising domains, PureView uses a visual allowlist: select one or more page
-elements, reload the page, and only the selected DOM branches remain visible.
+elements, confirm the selection, and only the selected DOM branches remain
+visible.
 
-> Current release: version 0.4.0, published as an unlisted Chrome Web Store
-> extension.
+> Current source release: version 0.5.0. The Chrome Web Store continues to serve
+> version 0.4.0 until the update is reviewed and published.
 
 - Install from Chrome Web Store:
   <https://chromewebstore.google.com/detail/pureview/mjdchlffjjnpoijpfajekkhhgbnmacmm>
@@ -22,7 +23,12 @@ elements, reload the page, and only the selected DOM branches remain visible.
 ## Features
 
 - Visual point-and-click element picker.
-- Multiple allowed elements per page.
+- Continuous selection: click multiple elements without reopening the popup.
+- Click a selected element again to remove it from the draft.
+- Done and Cancel controls with a live selected-element count.
+- Immediate filtering after the selection is confirmed, without a reload.
+- A popup list for removing individual saved elements.
+- Pause and resume the current page's filter without deleting its rule.
 - Parent/child selection with the Up and Down arrow keys.
 - Automatic filtering after a reload or later visit.
 - Support for dynamically updated pages through `MutationObserver`.
@@ -53,24 +59,27 @@ Pass a URL as the first argument when a specific development page is needed.
 ## Use PureView
 
 1. Open an HTTP or HTTPS page and select the PureView toolbar icon.
-2. Select **Select an element**.
+2. Select **Select page elements** or **Edit page selection**.
 3. Move the pointer over the content you want to keep.
 4. Press the Up arrow to select a larger parent container or the Down arrow to
    return to the previous child.
-5. Click the highlighted element to save it.
-6. To keep another element, open PureView and select **Add another element**.
-7. Reload the page. Only the selected elements and the parent branches required
-   to preserve them will remain visible.
+5. Click highlighted elements to add them. Click a selected element again to
+   remove it.
+6. Select **Done** to save the draft and apply the filter immediately, or
+   **Cancel** (or press Escape) to discard the draft.
+7. Use the popup's saved-element list to remove one element later, or select
+   **Pause filter** to show the full page without deleting the rule.
 
 Select **Reset filters for this site** to remove every saved rule for the
 current origin and immediately restore the full page.
 
 ## Privacy and permissions
 
-PureView stores page URLs, CSS selectors, labels, and timestamps in
-`chrome.storage.local`. These settings remain on the user's device and are not
-transmitted anywhere. PureView does not collect analytics, create accounts,
-serve advertisements, or execute remotely hosted code.
+PureView stores page URLs, CSS selectors, labels, timestamps, and local
+pause/resume state in `chrome.storage.local`. These settings remain on the
+user's device and are not transmitted anywhere. PureView does not collect
+analytics, create accounts, serve advertisements, or execute remotely hosted
+code.
 
 The extension requires:
 

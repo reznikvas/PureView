@@ -7,6 +7,7 @@
   globalThis.__pureViewContentLoaded = true;
 
   const RULES_KEY = "pureviewRules";
+  const PAUSED_KEY = "pureviewPausedPages";
   const CONSENT_KEY = "privacyConsentVersion";
   const REQUIRED_CONSENT_VERSION = 1;
   const HIDDEN_ATTRIBUTE = "data-pureview-hidden";
@@ -15,6 +16,7 @@
 
   let activeRule = null;
   let activeTargets = [];
+  let filterPaused = false;
   let observer = null;
   let picker = null;
   let scheduled = false;
@@ -52,6 +54,12 @@
     }
 
     return null;
+  }
+
+  function cloneRule(rule) {
+    const normalized = normalizeRule(rule);
+    if (!normalized) return null;
+    return {...normalized, blocks: normalized.blocks.map((block) => ({...block}))};
   }
 
   function isUnique(selector) {
@@ -157,7 +165,12 @@
 
   function applyRule() {
     scheduled = false;
-    if (!activeRule || picker) return;
+    if (picker) return;
+    if (filterPaused || !activeRule) {
+      clearIsolation();
+      return;
+    }
+
     const targets = activeRule.blocks
       .map((block) => {
         try {
@@ -191,6 +204,11 @@
     observer.observe(documentElement, {childList: true, subtree: true});
   }
 
+  function stopWatchingPage() {
+    observer?.disconnect();
+    observer = null;
+  }
+
   function showToast(message) {
     document.getElementById("pureview-toast")?.remove();
     const toast = document.createElement("div");
@@ -200,76 +218,192 @@
     window.setTimeout(() => toast.remove(), 4500);
   }
 
+  function isPureViewUi(element) {
+    let current = element;
+    while (current instanceof Element) {
+      if (current.id?.startsWith("pureview-")) return true;
+      current = current.parentElement;
+    }
+    return false;
+  }
+
+  function clearSelectedMarkers() {
+    document.querySelectorAll(".pureview-picker-selected").forEach((element) => {
+      element.classList.remove("pureview-picker-selected");
+    });
+  }
+
+  function updatePickerUi(state) {
+    clearSelectedMarkers();
+    for (const block of state.draftBlocks) {
+      try {
+        document.querySelector(block.selector)?.classList.add("pureview-picker-selected");
+      } catch (_error) {
+        // Invalid stored selectors remain listed but cannot be marked on the page.
+      }
+    }
+    state.count.textContent = `${state.draftBlocks.length} selected`;
+  }
+
   function stopPicker() {
     if (!picker) return;
     picker.hovered?.classList.remove("pureview-picker-hover");
+    clearSelectedMarkers();
     document.removeEventListener("mouseover", picker.onMouseOver, true);
     document.removeEventListener("click", picker.onClick, true);
     document.removeEventListener("keydown", picker.onKeyDown, true);
-    document.getElementById("pureview-picker-help")?.remove();
+    picker.toolbar.remove();
     picker = null;
+  }
+
+  function cancelPicker() {
+    if (!picker) return;
+    const previousRule = picker.originalRule;
+    const wasPaused = picker.wasPaused;
+    stopPicker();
+    activeRule = previousRule;
+    filterPaused = wasPaused;
+    if (activeRule && !filterPaused) {
+      watchPage();
+      scheduleApplyRule();
+    } else {
+      stopWatchingPage();
+      clearIsolation();
+    }
+    showToast("Selection changes canceled.");
+  }
+
+  async function finishPicker() {
+    const state = picker;
+    if (!state || state.busy) return;
+    state.busy = true;
+    state.done.disabled = true;
+    state.cancel.disabled = true;
+
+    try {
+      const settings = await storageGet([RULES_KEY, PAUSED_KEY]);
+      const pureviewRules = settings[RULES_KEY] || {};
+      const pausedPages = settings[PAUSED_KEY] || {};
+      const blocks = state.draftBlocks.map((block) => ({...block}));
+
+      if (blocks.length) {
+        activeRule = {blocks, updatedAt: new Date().toISOString()};
+        pureviewRules[pageKey] = activeRule;
+      } else {
+        activeRule = null;
+        delete pureviewRules[pageKey];
+      }
+      delete pausedPages[pageKey];
+
+      await storageSet({[RULES_KEY]: pureviewRules, [PAUSED_KEY]: pausedPages});
+      filterPaused = false;
+      stopPicker();
+
+      if (activeRule) {
+        watchPage();
+        applyRule();
+        showToast(`Selection saved. ${blocks.length} element${blocks.length === 1 ? "" : "s"} visible.`);
+      } else {
+        stopWatchingPage();
+        clearIsolation();
+        showToast("Page filter removed because no elements are selected.");
+      }
+    } catch (_error) {
+      state.busy = false;
+      state.done.disabled = false;
+      state.cancel.disabled = false;
+      showToast("PureView could not save the selection. Please try again.");
+    }
   }
 
   function startPicker() {
     stopPicker();
+    stopWatchingPage();
     clearIsolation();
 
-    const state = {hovered: null, children: []};
-    const help = document.createElement("div");
-    help.id = "pureview-picker-help";
-    help.textContent = "PureView: click to save · ↑ parent · ↓ back · Esc to cancel";
-    document.documentElement.append(help);
+    const originalRule = cloneRule(activeRule);
+    const state = {
+      hovered: null,
+      children: [],
+      originalRule,
+      draftBlocks: originalRule?.blocks.map((block) => ({...block})) || [],
+      wasPaused: filterPaused,
+      busy: false,
+    };
+
+    const toolbar = document.createElement("div");
+    toolbar.id = "pureview-picker-toolbar";
+    toolbar.setAttribute("role", "toolbar");
+    toolbar.setAttribute("aria-label", "PureView selection controls");
+
+    const instructions = document.createElement("span");
+    instructions.id = "pureview-picker-instructions";
+    instructions.textContent = "Click elements to add or remove · ↑ parent · ↓ back";
+
+    const count = document.createElement("strong");
+    count.id = "pureview-picker-count";
+
+    const done = document.createElement("button");
+    done.id = "pureview-picker-done";
+    done.type = "button";
+    done.textContent = "Done";
+
+    const cancel = document.createElement("button");
+    cancel.id = "pureview-picker-cancel";
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+
+    toolbar.append(instructions, count, done, cancel);
+    document.documentElement.append(toolbar);
+    Object.assign(state, {toolbar, count, done, cancel});
 
     state.setHovered = (element, resetChildren = true) => {
-      if (!(element instanceof Element) || element.id?.startsWith("pureview-")) return;
+      if (
+        !(element instanceof Element) ||
+        element === documentElement ||
+        isPureViewUi(element)
+      ) {
+        return;
+      }
       state.hovered?.classList.remove("pureview-picker-hover");
       state.hovered = element;
       state.hovered.classList.add("pureview-picker-hover");
       if (resetChildren) state.children = [];
     };
 
-    state.onMouseOver = (event) => {
-      const element = event.target;
-      state.setHovered(element);
-    };
+    state.onMouseOver = (event) => state.setHovered(event.target);
 
-    state.onClick = async (event) => {
-      if (!(state.hovered instanceof Element)) return;
+    state.onClick = (event) => {
+      if (isPureViewUi(event.target) || !(state.hovered instanceof Element)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      if (state.busy) return;
 
       const selected = state.hovered;
       const selector = selectorFor(selected);
-      const {pureviewRules = {}} = await storageGet(RULES_KEY);
-      const currentRule = normalizeRule(pureviewRules[pageKey]) || {blocks: []};
-      const alreadySaved = currentRule.blocks.some((block) => block.selector === selector);
-
-      if (alreadySaved) {
-        activeRule = currentRule;
-        stopPicker();
-        showToast("This element is already on the allowlist.");
-        return;
-      }
-
-      currentRule.blocks.push({
-        selector,
-        label: selected.getAttribute("aria-label") || selected.id || selected.localName,
-        savedAt: new Date().toISOString(),
-      });
-      currentRule.updatedAt = new Date().toISOString();
-      pureviewRules[pageKey] = currentRule;
-      await storageSet({[RULES_KEY]: pureviewRules});
-      activeRule = currentRule;
-      stopPicker();
-      showToast(
-        `Element added. Selected: ${currentRule.blocks.length}. Reload the page.`,
+      if (!selector) return;
+      const existingIndex = state.draftBlocks.findIndex(
+        (block) => block.selector === selector,
       );
+
+      if (existingIndex >= 0) {
+        state.draftBlocks.splice(existingIndex, 1);
+      } else {
+        state.draftBlocks.push({
+          selector,
+          label: selected.getAttribute("aria-label") || selected.id || selected.localName,
+          savedAt: new Date().toISOString(),
+        });
+      }
+      updatePickerUi(state);
     };
 
     state.onKeyDown = (event) => {
+      if (state.busy) return;
       if (event.key === "Escape") {
-        stopPicker();
-        if (activeRule) scheduleApplyRule();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancelPicker();
         return;
       }
 
@@ -291,10 +425,48 @@
       }
     };
 
+    done.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void finishPicker();
+    });
+    cancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cancelPicker();
+    });
+
     picker = state;
+    updatePickerUi(state);
     document.addEventListener("mouseover", state.onMouseOver, true);
     document.addEventListener("click", state.onClick, true);
     document.addEventListener("keydown", state.onKeyDown, true);
+  }
+
+  async function refreshState() {
+    const settings = await storageGet([RULES_KEY, PAUSED_KEY]);
+    activeRule = normalizeRule((settings[RULES_KEY] || {})[pageKey]);
+    filterPaused = Boolean((settings[PAUSED_KEY] || {})[pageKey]);
+
+    if (filterPaused || !activeRule) {
+      stopWatchingPage();
+      clearIsolation();
+    } else {
+      watchPage();
+      applyRule();
+    }
+  }
+
+  function setPaused(paused) {
+    stopPicker();
+    filterPaused = Boolean(paused);
+    if (filterPaused) {
+      stopWatchingPage();
+      clearIsolation();
+    } else if (activeRule) {
+      watchPage();
+      applyRule();
+    }
   }
 
   function initialize() {
@@ -310,19 +482,34 @@
         sendResponse({ok: true});
         return;
       }
-      if (message?.type === "PUREVIEW_CLEAR_SITE") {
-        activeRule = null;
-        stopPicker();
-        clearIsolation();
+      if (message?.type === "PUREVIEW_REFRESH") {
+        refreshState()
+          .then(() => sendResponse({ok: true}))
+          .catch((error) => sendResponse({ok: false, error: error.message}));
+        return true;
+      }
+      if (message?.type === "PUREVIEW_SET_PAUSED") {
+        setPaused(message.paused);
         sendResponse({ok: true});
         return;
       }
+      if (message?.type === "PUREVIEW_CLEAR_SITE") {
+        activeRule = null;
+        filterPaused = false;
+        stopPicker();
+        stopWatchingPage();
+        clearIsolation();
+        sendResponse({ok: true});
+      }
     });
 
-    storageGet(RULES_KEY).then(async ({pureviewRules = {}}) => {
+    storageGet([RULES_KEY, PAUSED_KEY]).then(async (settings) => {
+      const pureviewRules = settings[RULES_KEY] || {};
       const storedRule = pureviewRules[pageKey] || null;
       activeRule = normalizeRule(storedRule);
-      if (!activeRule) {
+      filterPaused = Boolean((settings[PAUSED_KEY] || {})[pageKey]);
+      if (!activeRule || filterPaused) {
+        stopWatchingPage();
         documentElement.removeAttribute("data-pureview-loading");
         return;
       }
@@ -335,10 +522,15 @@
       watchPage();
       scheduleApplyRule();
       window.setTimeout(() => {
-        if (!activeTargets.length && !picker) {
+        if (!activeTargets.length && !picker && !filterPaused) {
           documentElement.removeAttribute("data-pureview-loading");
           showToast("PureView could not find the selected elements. The full page is shown.");
-        } else if (activeTargets.length < activeRule.blocks.length && !picker) {
+        } else if (
+          activeRule &&
+          activeTargets.length < activeRule.blocks.length &&
+          !picker &&
+          !filterPaused
+        ) {
           showToast("Some selected elements were not found. Available elements are shown.");
         }
       }, 8000);
@@ -350,11 +542,27 @@
   });
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (
-      areaName === "local" &&
-      changes[CONSENT_KEY]?.newValue === REQUIRED_CONSENT_VERSION
-    ) {
-      initialize();
+    if (areaName !== "local") return;
+    if (changes[CONSENT_KEY]?.newValue === REQUIRED_CONSENT_VERSION) initialize();
+    if (!initialized || picker) return;
+
+    let shouldApply = false;
+    if (changes[RULES_KEY]) {
+      activeRule = normalizeRule((changes[RULES_KEY].newValue || {})[pageKey]);
+      shouldApply = true;
+    }
+    if (changes[PAUSED_KEY]) {
+      filterPaused = Boolean((changes[PAUSED_KEY].newValue || {})[pageKey]);
+      shouldApply = true;
+    }
+    if (shouldApply) {
+      if (filterPaused || !activeRule) {
+        stopWatchingPage();
+        clearIsolation();
+      } else {
+        watchPage();
+        applyRule();
+      }
     }
   });
 })();

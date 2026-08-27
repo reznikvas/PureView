@@ -1,6 +1,6 @@
 # PureView Privacy Policy
 
-Effective date: August 23, 2026
+Effective date: August 27, 2026
 
 PureView is a browser extension that lets users select page elements to keep
 visible and hides unrelated page elements. This policy explains the data
@@ -13,6 +13,7 @@ PureView handles the following information on the user's device:
 - the origin and pathname of a page for which the user creates a rule;
 - CSS selectors, short element labels, and timestamps for elements explicitly
   selected by the user;
+- whether the user has paused a saved filter for a page;
 - website DOM content temporarily, to highlight selectable elements and apply
   the user's saved allowlist;
 - pointer and click interactions temporarily while the user has explicitly
@@ -28,8 +29,9 @@ The information is used only to provide PureView's single user-facing purpose:
 letting the user choose page elements and automatically hiding unrelated DOM
 branches on later page loads.
 
-Saved rules are stored in `chrome.storage.local` inside the user's Chrome
-profile. PureView does not use `chrome.storage.sync` in the current release.
+Saved rules and pause/resume state are stored in `chrome.storage.local` inside
+the user's Chrome profile. PureView does not use `chrome.storage.sync` in the
+current release.
 
 ## Data transmission, sharing, and sale
 

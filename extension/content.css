@@ -14,7 +14,16 @@ html[data-pureview-loading="true"] {
   cursor: crosshair !important;
 }
 
-#pureview-picker-help,
+.pureview-picker-selected {
+  outline: 3px solid #41c982 !important;
+  outline-offset: 2px !important;
+}
+
+.pureview-picker-selected.pureview-picker-hover {
+  outline-color: #5b8cff !important;
+}
+
+#pureview-picker-toolbar,
 #pureview-toast {
   all: initial !important;
   position: fixed !important;
@@ -29,14 +38,61 @@ html[data-pureview-loading="true"] {
   font: 13px/1.45 system-ui, sans-serif !important;
 }
 
-#pureview-picker-help {
+#pureview-picker-toolbar {
   top: 16px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+#pureview-picker-instructions,
+#pureview-picker-count {
+  all: initial !important;
+  color: inherit !important;
+  font: inherit !important;
+  white-space: nowrap !important;
+}
+
+#pureview-picker-count {
+  color: #9ff0c4 !important;
+  font-weight: 700 !important;
+}
+
+#pureview-picker-toolbar button {
+  all: initial !important;
+  box-sizing: border-box !important;
+  padding: 7px 11px !important;
+  border-radius: 7px !important;
+  background: #5b8cff !important;
+  color: white !important;
+  font: 600 13px/1.2 system-ui, sans-serif !important;
+  cursor: pointer !important;
+}
+
+#pureview-picker-toolbar button:disabled {
+  opacity: 0.55 !important;
+  cursor: default !important;
+}
+
+#pureview-picker-cancel {
+  background: #343b4c !important;
 }
 
 #pureview-toast {
   right: 16px !important;
   bottom: 16px !important;
+}
+
+@media (max-width: 720px) {
+  #pureview-picker-toolbar {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+
+  #pureview-picker-instructions {
+    width: 100% !important;
+    text-align: center !important;
+  }
 }

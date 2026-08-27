@@ -24,18 +24,18 @@ The summary matches `manifest.json` and is fewer than 132 characters.
 
 PureView helps you focus on the useful parts of a web page.
 
-Choose one or more page elements with the visual picker. When you reload or
-return to the same page, PureView keeps those elements visible and hides
-unrelated page branches. The original DOM nodes remain in place so interactive
-controls and dynamically updated content can continue to work.
+Choose one or more page elements with the visual picker. PureView immediately
+keeps those elements visible and hides unrelated page branches. The original
+DOM nodes remain in place so interactive controls and dynamically updated
+content can continue to work.
 
 HOW IT WORKS
 
 1. Open the PureView toolbar popup.
-2. Select an element on the page.
-3. Add more elements if needed.
-4. Reload the page to see only your allowlisted content.
-5. Reset a site's filters from the popup at any time.
+2. Click elements to add them or click selected elements to remove them.
+3. Select Done to save and apply the filter immediately.
+4. Manage individual elements or pause the filter from the popup.
+5. Reset all of a site's filters from the popup at any time.
 
 PRIVACY FIRST
 
@@ -58,16 +58,17 @@ PureView is free and open-source software licensed under GPL-3.0-only.
 PureView lets users visually choose web page elements to keep visible and
 automatically hides unrelated DOM branches on later visits.
 
-All features—selection, multiple elements, automatic filtering, and reset—are
-directly required by this single purpose.
+All features—selection, rule management, pause/resume, automatic filtering, and
+reset—are directly required by this single purpose.
 
 ## Permission justifications
 
 ### storage
 
-PureView uses `chrome.storage.local` to store the user's privacy-consent record
-and allowlist rules. A rule contains an origin and pathname, CSS selectors,
-short element labels, and timestamps. The data remains on the user's device.
+PureView uses `chrome.storage.local` to store the user's privacy-consent record,
+allowlist rules, and pause/resume state. A rule contains an origin and pathname,
+CSS selectors, short element labels, and timestamps. The data remains on the
+user's device.
 
 ### activeTab
 
@@ -141,6 +142,8 @@ Verify that every URL is publicly accessible before submission.
 - Required screenshot: `store-assets/screenshot-01-popup-1280x800.png` is a real
   1280x800 Chrome screenshot. Additional optional screenshots are documented in
   `store-assets/README.md`.
+- Before submitting version 0.5.0, replace or supplement the existing screenshot
+  with a real capture of the updated popup and continuous picker toolbar.
 - Optional marquee tile: not prepared for the initial unlisted release.
 
 ## Distribution

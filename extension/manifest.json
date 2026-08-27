@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "PureView",
   "short_name": "PureView",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "minimum_chrome_version": "96",
   "description": "Keep only the page elements you choose and hide everything else with a local, privacy-first allowlist.",
   "homepage_url": "https://pureviewtool.com/",

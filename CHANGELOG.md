@@ -6,6 +6,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-27
+
+### Added
+
+- Continuous multi-element selection in one picker session.
+- On-page Done and Cancel controls with a live selected-element count.
+- Toggle removal by clicking an element that is already selected.
+- Per-element removal from the popup's saved-rule list.
+- Pause and resume controls for the current page without deleting its rule.
+- Installed-version display in the popup header.
+- Automated tests for picker drafts, save/cancel behavior, empty selections,
+  immediate pause/resume, popup rule management, and site isolation.
+
+### Changed
+
+- Apply a confirmed selection immediately without requiring a page reload.
+- Expanded the action popup to show the current page's saved elements and
+  filter state.
+
 ## [0.4.0] - 2026-08-23
 
 ### Added

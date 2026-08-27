@@ -1,7 +1,7 @@
 # Publishing PureView
 
-This checklist covers the first public GitHub release and unlisted Chrome Web
-Store submission.
+This checklist covers GitHub releases and updates to the existing unlisted
+Chrome Web Store item.
 
 ## 1. Developer account
 
@@ -22,7 +22,7 @@ Store submission.
 - Enable private vulnerability reporting under the repository Security settings.
 - Confirm the repository, website, and security-contact links remain current.
 - Confirm GitHub recognizes the repository license as GPL-3.0.
-- Create a signed or annotated `v0.4.0` tag only after the release candidate has
+- Create a signed or annotated `v0.5.0` tag only after the release candidate has
   passed manual testing.
 
 ## 3. Publisher and public URLs
@@ -63,7 +63,12 @@ a clean stable-Chrome profile:
 - the extension remains inactive before consent;
 - consent enables the popup and page picker;
 - one and multiple elements survive reload;
-- duplicate selection is rejected;
+- repeated clicks add and remove elements within one picker session;
+- Done saves the draft and applies it without a reload;
+- Cancel and Escape restore the original rule and filter state;
+- removing every draft element and selecting Done removes the page rule;
+- individual elements can be removed from the popup;
+- Pause restores the full page and Resume reapplies the rule immediately;
 - canceling the first selection leaves reset available so site access can be
   revoked;
 - dynamic page changes do not reveal unrelated branches;
@@ -84,27 +89,30 @@ Follow `store-assets/README.md`. Use 1280x800 PNG or JPEG images with square
 corners and no padding. Screenshots must show the actual extension experience,
 not a generated or conceptual interface.
 
-The required screenshot is ready at
-`store-assets/screenshot-01-popup-1280x800.png`. Review it in the Developer
-Dashboard preview after upload; additional screenshots remain optional.
+The existing `store-assets/screenshot-01-popup-1280x800.png` documents version
+0.4.0. After the 0.5.0 manual test, replace it with a real 1280x800 capture of
+the updated popup or add a new real screenshot of the continuous picker. Review
+every image in the Developer Dashboard preview before submission.
 
-## 7. Create the Store item
+## 7. Update the Store item
 
 1. Open the Chrome Web Store Developer Dashboard.
-2. Add a new item and upload `dist/pureview-0.4.0-chrome.zip`.
-3. Copy the reviewed fields from `docs/CHROME_WEB_STORE_LISTING.md`.
-4. Upload the icon, required small promotional tile, and real screenshots.
-5. Enter the final homepage, support, source, and privacy-policy URLs.
-6. Complete Privacy Practices conservatively and exactly as documented.
-7. Confirm that remote code is **No**.
-8. Select **Unlisted** visibility.
+2. Open the existing PureView item and its **Package** section.
+3. Upload `dist/pureview-0.5.0-chrome.zip` as a new package. Do not create a new
+   Store item.
+4. Copy any changed fields from `docs/CHROME_WEB_STORE_LISTING.md`.
+5. Upload an updated real screenshot that shows the 0.5.0 interface.
+6. Confirm the homepage, support, source, and privacy-policy URLs.
+7. Recheck Privacy Practices and permission justifications against the package.
+8. Confirm that remote code is **No** and visibility remains **Unlisted**.
 9. Save the draft and review the preview for misleading or missing information.
-10. Submit for review only after every placeholder and checklist item is closed.
+10. Submit for review only after every checklist item is closed.
 
 ## 8. After approval
 
-- Add the direct Chrome Web Store URL to the project website and README.
-- Create the matching GitHub release and attach the ZIP plus its SHA-256.
+- Verify that the existing direct Chrome Web Store URL still works from the
+  project website and README.
+- Confirm that the matching GitHub release contains the ZIP and its SHA-256.
 - Keep the signing key private if verified CRX uploads are enabled later.
 - Monitor the developer email for review or policy messages.
 - For every update, increase `manifest.json` version, update the changelog,
@@ -116,6 +124,6 @@ Dashboard preview after upload; additional screenshots remain optional.
 - The broad optional-host declaration permits per-origin requests. The product
   must continue requesting only the current origin after an explicit user
   action, and its justification must remain accurate.
-- Any future data-handling change requires updated disclosures and a new consent
-  version before the changed handling begins.
+- Any future material data-handling change requires updated disclosures and a
+  new consent version before the changed handling begins.
 - Never add a permission only for a possible future feature.

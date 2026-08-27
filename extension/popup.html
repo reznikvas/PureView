@@ -9,12 +9,23 @@
   </head>
   <body>
     <main>
-      <h1>PureView</h1>
+      <header class="popup-heading">
+        <h1>PureView</h1>
+        <span id="version" aria-label="PureView version"></span>
+      </header>
       <p id="status">Checking this page…</p>
-      <button id="select" type="button" disabled>Select an element</button>
+      <button id="select" type="button" disabled>Edit page selection</button>
+      <button id="pause" class="secondary" type="button" hidden>Pause filter</button>
+      <section id="rules" hidden>
+        <div class="rules-heading">
+          <h2>Saved elements</h2>
+          <span id="count" aria-label="Selected element count">0</span>
+        </div>
+        <ul id="block-list"></ul>
+      </section>
       <button id="clear" class="secondary danger" type="button">Reset filters for this site</button>
       <button id="consent" type="button" hidden>Review privacy disclosure</button>
-      <p class="hint">Each selection adds another element. Press ↑ to select a larger container, then reload the page.</p>
+      <p class="hint">In selection mode, click elements to add or remove them. Press Done to apply the filter immediately.</p>
       <p class="privacy-link"><a href="onboarding.html" target="_blank">Privacy and data use</a></p>
     </main>
     <script src="popup.js"></script>

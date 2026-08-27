@@ -18,10 +18,16 @@ class FakeElement {
     this.parentElement = null;
     this.children = [];
     this.attributes = new Map();
+    this.listeners = new Map();
+    this.textContent = "";
+    this.disabled = false;
+    this.type = "";
+    this.classes = new Set();
     this.classList = {
-      [Symbol.iterator]: function* iterator() {},
-      add() {},
-      remove() {},
+      [Symbol.iterator]: () => this.classes.values(),
+      add: (...names) => names.forEach((name) => this.classes.add(name)),
+      remove: (...names) => names.forEach((name) => this.classes.delete(name)),
+      contains: (name) => this.classes.has(name),
     };
   }
 
@@ -30,6 +36,14 @@ class FakeElement {
       child.parentElement = this;
       this.children.push(child);
     }
+  }
+
+  remove() {
+    if (!this.parentElement) return;
+    this.parentElement.children = this.parentElement.children.filter(
+      (child) => child !== this,
+    );
+    this.parentElement = null;
   }
 
   contains(candidate) {
@@ -48,6 +62,26 @@ class FakeElement {
   getAttribute(name) {
     return this.attributes.get(name) ?? null;
   }
+
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, []);
+    this.listeners.get(type).push(listener);
+  }
+
+  async dispatch(type, event = eventFor(this)) {
+    for (const listener of this.listeners.get(type) || []) await listener(event);
+  }
+}
+
+function eventFor(target, extra = {}) {
+  return {
+    target,
+    key: undefined,
+    preventDefault() {},
+    stopPropagation() {},
+    stopImmediatePropagation() {},
+    ...extra,
+  };
 }
 
 function descendants(root) {
@@ -90,32 +124,58 @@ function createPage() {
   };
 }
 
-async function runContentScript(rule, consentVersion = 1) {
+function matchingElements(root, selector) {
+  const elements = descendants(root);
+  if (selector === "[data-pureview-hidden]") {
+    return elements.filter((element) => element.attributes.has("data-pureview-hidden"));
+  }
+  if (selector.startsWith("#")) {
+    return elements.filter((element) => element.id === selector.slice(1));
+  }
+  if (selector.startsWith(".")) {
+    return elements.filter((element) => element.classList.contains(selector.slice(1)));
+  }
+  return elements.filter((element) => element.localName === selector);
+}
+
+async function settle() {
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+async function runContentScript(rule, {consentVersion = 1, paused = false} = {}) {
   const page = createPage();
   const writes = [];
-  const selectorMap = new Map([
-    ["#first", page.first],
-    ["#first-branch", page.firstBranch],
-    ["#second", page.second],
-  ]);
-  const rules = rule ? {"https://test.invalid/page": rule} : {};
-  const storageState = {pureviewRules: rules};
+  const documentListeners = new Map();
+  let runtimeListener = null;
+  const rules = rule ? {"https://test.invalid/page": structuredClone(rule)} : {};
+  const storageState = {pureviewRules: rules, pureviewPausedPages: {}};
+  if (paused) storageState.pureviewPausedPages["https://test.invalid/page"] = true;
   if (consentVersion !== null) storageState.privacyConsentVersion = consentVersion;
+
+  function selectSettings(key) {
+    if (Array.isArray(key)) {
+      return Object.fromEntries(key.map((name) => [name, storageState[name]]));
+    }
+    return {[key]: storageState[key]};
+  }
 
   const document = {
     documentElement: page.html,
     body: page.body,
-    querySelector: (selector) => selectorMap.get(selector) || null,
-    querySelectorAll: (selector) => {
-      if (selector !== "[data-pureview-hidden]") return [];
-      return descendants(page.html).filter((element) =>
-        element.attributes.has("data-pureview-hidden"),
-      );
+    createElement: (name) => new FakeElement(name),
+    querySelector: (selector) => matchingElements(page.html, selector)[0] || null,
+    querySelectorAll: (selector) => matchingElements(page.html, selector),
+    getElementById: (id) => descendants(page.html).find((element) => element.id === id) || null,
+    addEventListener(type, listener) {
+      if (!documentListeners.has(type)) documentListeners.set(type, []);
+      documentListeners.get(type).push(listener);
     },
-    addEventListener() {},
-    removeEventListener() {},
-    getElementById() {
-      return null;
+    removeEventListener(type, listener) {
+      documentListeners.set(
+        type,
+        (documentListeners.get(type) || []).filter((item) => item !== listener),
+      );
     },
   };
 
@@ -123,17 +183,24 @@ async function runContentScript(rule, consentVersion = 1) {
     chrome: {
       storage: {
         local: {
-          get(_key, callback) {
-            callback(storageState);
+          get(key, callback) {
+            callback(selectSettings(key));
           },
           set(value, callback) {
-            writes.push(value);
+            Object.assign(storageState, structuredClone(value));
+            writes.push(structuredClone(value));
             callback();
           },
         },
         onChanged: {addListener() {}},
       },
-      runtime: {onMessage: {addListener() {}}},
+      runtime: {
+        onMessage: {
+          addListener(listener) {
+            runtimeListener = listener;
+          },
+        },
+      },
     },
     CSS: {escape: (value) => value},
     document,
@@ -149,8 +216,33 @@ async function runContentScript(rule, consentVersion = 1) {
   };
 
   vm.runInNewContext(contentScript, context);
-  await new Promise((resolve) => setImmediate(resolve));
-  return {page, writes};
+  await settle();
+
+  async function sendMessage(message) {
+    let response;
+    runtimeListener?.(message, {}, (value) => { response = value; });
+    await settle();
+    return response;
+  }
+
+  async function dispatchDocument(type, event) {
+    for (const listener of [...(documentListeners.get(type) || [])]) listener(event);
+    await settle();
+  }
+
+  async function clickPageElement(element) {
+    await dispatchDocument("mouseover", eventFor(element));
+    await dispatchDocument("click", eventFor(element));
+  }
+
+  return {
+    page,
+    writes,
+    storageState,
+    document,
+    sendMessage,
+    clickPageElement,
+  };
 }
 
 function isHidden(element) {
@@ -208,7 +300,7 @@ async function testLegacyRuleMigration() {
 async function testConsentGate() {
   const {page, writes} = await runContentScript(
     {blocks: [{selector: "#first", label: "first"}]},
-    null,
+    {consentVersion: null},
   );
 
   assert.equal(isHidden(page.advertisement), false);
@@ -216,11 +308,86 @@ async function testConsentGate() {
   assert.equal(writes.length, 0);
 }
 
+async function testContinuousPickerTogglesAndSaves() {
+  const harness = await runContentScript({
+    blocks: [{selector: "#first", label: "first"}],
+  });
+  await harness.sendMessage({type: "PUREVIEW_START_PICKER"});
+
+  assert.equal(harness.document.getElementById("pureview-picker-count").textContent, "1 selected");
+  assert.equal(harness.page.first.classList.contains("pureview-picker-selected"), true);
+  assert.equal(isHidden(harness.page.advertisement), false);
+
+  await harness.clickPageElement(harness.page.second);
+  assert.equal(harness.document.getElementById("pureview-picker-count").textContent, "2 selected");
+  assert.equal(harness.writes.length, 0, "draft changes must not write storage");
+
+  await harness.clickPageElement(harness.page.second);
+  assert.equal(harness.document.getElementById("pureview-picker-count").textContent, "1 selected");
+  await harness.clickPageElement(harness.page.second);
+  await harness.document.getElementById("pureview-picker-done").dispatch("click");
+  await settle();
+
+  const saved = harness.storageState.pureviewRules["https://test.invalid/page"];
+  assert.deepEqual(saved.blocks.map((block) => block.selector), ["#first", "#second"]);
+  assert.equal(harness.document.getElementById("pureview-picker-toolbar"), null);
+  assert.equal(isHidden(harness.page.advertisement), true);
+  assert.equal(isHidden(harness.page.first), false);
+  assert.equal(isHidden(harness.page.second), false);
+}
+
+async function testPickerCancelRestoresOriginalFilter() {
+  const harness = await runContentScript({
+    blocks: [{selector: "#first", label: "first"}],
+  });
+  await harness.sendMessage({type: "PUREVIEW_START_PICKER"});
+  await harness.clickPageElement(harness.page.second);
+  await harness.document.getElementById("pureview-picker-cancel").dispatch("click");
+  await settle();
+
+  const saved = harness.storageState.pureviewRules["https://test.invalid/page"];
+  assert.deepEqual(saved.blocks.map((block) => block.selector), ["#first"]);
+  assert.equal(isHidden(harness.page.first), false);
+  assert.equal(isHidden(harness.page.secondBranch), true);
+  assert.equal(harness.writes.length, 0);
+}
+
+async function testEmptySelectionRemovesPageRule() {
+  const harness = await runContentScript({
+    blocks: [{selector: "#first", label: "first"}],
+  }, {paused: true});
+  await harness.sendMessage({type: "PUREVIEW_START_PICKER"});
+  await harness.clickPageElement(harness.page.first);
+  await harness.document.getElementById("pureview-picker-done").dispatch("click");
+  await settle();
+
+  assert.equal(harness.storageState.pureviewRules["https://test.invalid/page"], undefined);
+  assert.equal(harness.storageState.pureviewPausedPages["https://test.invalid/page"], undefined);
+  assert.equal(isHidden(harness.page.advertisement), false);
+}
+
+async function testPauseAndResumeApplyImmediately() {
+  const harness = await runContentScript({
+    blocks: [{selector: "#first", label: "first"}],
+  });
+  assert.equal(isHidden(harness.page.advertisement), true);
+
+  await harness.sendMessage({type: "PUREVIEW_SET_PAUSED", paused: true});
+  assert.equal(isHidden(harness.page.advertisement), false);
+
+  await harness.sendMessage({type: "PUREVIEW_SET_PAUSED", paused: false});
+  assert.equal(isHidden(harness.page.advertisement), true);
+}
+
 async function main() {
   await testTwoIndependentBlocks();
   await testNestedBlockDoesNotNarrowParent();
   await testLegacyRuleMigration();
   await testConsentGate();
+  await testContinuousPickerTogglesAndSaves();
+  await testPickerCancelRestoresOriginalFilter();
+  await testEmptySelectionRemovesPageRule();
+  await testPauseAndResumeApplyImmediately();
   console.log("PureView content tests: OK");
 }
 

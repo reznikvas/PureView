@@ -5,15 +5,14 @@
 - **Product:** PureView.
 - **Product type:** Google Chrome browser extension.
 - **Platform:** Chrome Extension Manifest V3.
-- **Current pre-release version:** 0.4.0.
+- **Current development version:** 0.5.0.
 - **Document status:** living technical specification.
 - **Primary product language:** English.
 - **Product website:** <https://pureviewtool.com/>.
 - **Source repository:** <https://github.com/reznikvas/PureView>.
 - **Publisher:** Vasilii Reznik (`reznik@halam-balam.com`).
 - **Source-code license:** GNU General Public License v3.0 only.
-- **Planned distribution:** unlisted Chrome Web Store item and public GitHub
-  repository.
+- **Distribution:** unlisted Chrome Web Store item and public GitHub repository.
 
 This document is the source of truth for PureView requirements. New behavior,
 scope changes, and acceptance criteria should be documented here before or with
@@ -60,6 +59,11 @@ PureView must:
 9. Work without an account, remote service, analytics, or remote code.
 10. Remain inactive until the user accepts a prominent in-product privacy
     disclosure.
+11. Let the user add and remove multiple elements in one continuous picker
+    session before confirming the draft.
+12. Apply confirmed picker changes immediately without requiring a reload.
+13. List and remove individual page elements from the action popup.
+14. Pause and resume a page filter without deleting its rule.
 
 The current version is not required to:
 
@@ -72,37 +76,58 @@ The current version is not required to:
 
 ## 5. User flows
 
-### 5.1. Add an allowed element
+### 5.1. Edit a page selection
 
 1. The user opens an HTTP or HTTPS page.
 2. The user opens the PureView action popup.
 3. The popup reports the number of elements selected for the page.
-4. The user selects **Select an element** or **Add another element**.
+4. The user selects **Select page elements** or **Edit page selection**.
 5. The popup closes and the page enters picker mode.
 6. The element under the pointer receives a visible outline.
 7. The Up arrow selects a parent container; the Down arrow returns to the
    previous child.
-8. The user clicks the highlighted element.
-9. PureView appends the selector to the page rule and reports the total count.
-10. Selecting an existing selector does not create a duplicate.
-11. After reload, all selected elements and their required parent branches are
-    visible.
+8. The user clicks highlighted elements sequentially. A first click adds an
+   element to the draft and a second click on the same element removes it.
+9. Selected elements retain a distinct outline and the toolbar reports the
+   current draft count.
+10. The user selects **Done**.
+11. PureView stores the complete draft and applies the filter immediately.
+12. If the completed draft contains no elements, PureView deletes the page
+    rule and shows the full page.
 
 ### 5.2. Cancel the picker
 
-1. The user presses `Escape` while the picker is active.
+1. The user selects **Cancel** or presses `Escape` while the picker is active.
 2. The picker closes without changing stored rules.
-3. A previously active filter is applied again.
+3. The original filter and pause state are restored immediately.
 
-### 5.3. Reset a site
+### 5.3. Manage saved elements
+
+1. The popup lists every allowed element for the current page with its label
+   and selector.
+2. The user selects **Remove** for one element.
+3. PureView removes only that element and immediately reapplies the remaining
+   rule.
+4. Removing the final element deletes the page rule and restores the full page.
+
+### 5.4. Pause and resume a filter
+
+1. The user selects **Pause filter** for a page with a saved rule.
+2. PureView shows the full page immediately and retains the saved rule.
+3. The popup reports that the filter is paused.
+4. The user selects **Resume filter** and PureView reapplies the rule
+   immediately.
+
+### 5.5. Reset a site
 
 1. The user opens the PureView popup.
 2. The user selects **Reset filters for this site**.
 3. PureView removes every rule whose origin equals the current page origin.
 4. The open page is restored immediately without requiring a reload.
-5. Rules belonging to other origins remain unchanged.
+5. Saved pause states for the current origin are removed.
+6. Rules belonging to other origins remain unchanged.
 
-### 5.4. Handle unavailable selectors
+### 5.6. Handle unavailable selectors
 
 1. PureView attempts to resolve every stored selector.
 2. If no element appears before the timeout, PureView restores the full page.
@@ -124,9 +149,13 @@ safely.
 The popup must provide:
 
 - the PureView name;
+- the current extension version read from the runtime manifest;
 - the current page's selected-element count or a site status;
-- **Select an element** when the page rule is empty;
-- **Add another element** when at least one element exists;
+- **Select page elements** when the page rule is empty;
+- **Edit page selection** when at least one element exists;
+- a list of the current page's saved elements with an individual **Remove**
+  control;
+- **Pause filter** or **Resume filter** when a page rule exists;
 - **Reset filters for this site**;
 - a concise picker instruction.
 
@@ -139,11 +168,17 @@ site access even if the picker was canceled before a rule was saved.
 The picker must:
 
 - highlight the element under the pointer;
-- intercept the final click so the site's action is not triggered accidentally;
-- exclude PureView's own notifications from selection;
+- use a distinct persistent marker for elements currently in the draft;
+- toggle an element into or out of the draft on sequential clicks;
+- report the live draft count;
+- provide **Done** and **Cancel** controls in an on-page toolbar;
+- defer storage writes until **Done** is selected;
+- intercept selection clicks so the site's action is not triggered accidentally;
+- exclude PureView's own toolbar and notifications from selection;
 - move to a parent with `ArrowUp`;
 - return to the prior child with `ArrowDown`;
-- cancel with `Escape`.
+- cancel with `Escape`;
+- restore the original rule and pause state after cancellation.
 
 ### FR-004: Selector construction
 
@@ -188,6 +223,11 @@ The rule key is the origin plus pathname. Query parameters and fragments are
 excluded. A legacy rule containing a top-level `selector` must be migrated to a
 `blocks` array without losing the selection.
 
+Paused filters must be stored separately under `pureviewPausedPages` as a map
+from the same page key to `true`. A pause entry must never replace or modify the
+corresponding rule. Completing picker changes and resetting a site remove the
+applicable pause entry.
+
 ### FR-006: Filter application
 
 When a page rule exists, PureView must:
@@ -200,6 +240,8 @@ When a page rule exists, PureView must:
    element contains another.
 6. Keep original DOM nodes rather than cloning their HTML.
 7. Preserve the selected components' scripts and event handlers.
+8. Rebuild the filter immediately after a confirmed picker change or individual
+   element removal.
 
 Hidden elements use `data-pureview-hidden="true"` and
 `display: none !important`.
@@ -224,10 +266,11 @@ remain visible and the user must be notified about missing elements.
 
 ### FR-010: Site reset
 
-The reset action must delete every `pureviewRules` entry whose URL has the same
-origin as the active page. The content script must immediately remove every
-PureView hiding attribute from the current document. PureView must also remove
-the origin's dynamic content-script registration and optional host permission.
+The reset action must delete every `pureviewRules` and `pureviewPausedPages`
+entry whose URL has the same origin as the active page. The content script must
+immediately remove every PureView hiding attribute from the current document.
+PureView must also remove the origin's dynamic content-script registration and
+optional host permission.
 
 ### FR-011: Isolated development launch
 
@@ -269,6 +312,22 @@ is granted, it must register `content.js` and `content.css` through
 them into the current tab. The content script must guard against duplicate
 injection. No install-time content script may match every HTTP/HTTPS site.
 
+### FR-015: Temporary filter pause
+
+The popup must offer pause and resume controls only when the current page has a
+saved rule. Pausing must immediately restore the full page without deleting or
+editing the rule. Resuming must immediately reapply the rule. The pause state
+must survive navigation and browser restarts until the user resumes the filter,
+confirms a new picker draft, removes the final page element, or resets the site.
+
+### FR-016: Individual element removal
+
+The popup must display the label and selector of every current-page block and
+allow one block to be removed without affecting other blocks or other pages.
+Removing the final block must delete the page rule, clear its pause state, and
+restore the full page. Popup-generated text must be inserted with DOM text
+properties rather than interpreted as HTML.
+
 ## 7. Architecture
 
 ### 7.1. Components
@@ -296,13 +355,16 @@ injection. No install-time content script may match every HTTP/HTTPS site.
 ### 7.2. Runtime messages
 
 - `PUREVIEW_START_PICKER`: enter picker mode.
+- `PUREVIEW_REFRESH`: reload the current page rule and pause state from local
+  storage and apply the result immediately.
+- `PUREVIEW_SET_PAUSED`: immediately pause or resume the current page filter.
 - `PUREVIEW_CLEAR_SITE`: restore the page after the site rules are deleted.
 - `PUREVIEW_ENABLE_SITE`: register and inject PureView for an approved origin.
 - `PUREVIEW_DISABLE_SITE`: unregister PureView and remove origin permission.
 
 ### 7.3. Chrome permissions
 
-- `storage`: saves consent and allowlist rules locally.
+- `storage`: saves consent, allowlist rules, and pause state locally.
 - `activeTab`: temporarily identifies the explicitly invoked tab.
 - `scripting`: registers and injects packaged PureView scripts and styles.
 - optional HTTP/HTTPS host access: granted for the current origin only when the
@@ -358,8 +420,9 @@ download permissions.
 
 ### AC-001: Page selection
 
-After selecting a page component and reloading, that component is visible while
-unrelated navigation, advertising, and other branches are hidden.
+After confirming a page component, that component is immediately visible while
+unrelated navigation, advertising, and other branches are hidden. The same
+filter is restored after reload.
 
 ### AC-002: Selected component operation
 
@@ -389,8 +452,7 @@ remain visible and a partial-resolution notification is displayed.
 ### AC-007: Multiple elements
 
 After two independent elements are selected, the popup reports two elements and
-both remain visible after reload. Unrelated branches are hidden, and selecting a
-duplicate does not increase the count.
+both remain visible immediately and after reload. Unrelated branches are hidden.
 
 ### AC-008: Release validation
 
@@ -415,6 +477,31 @@ filter applies automatically on that origin after reload. Resetting the site
 removes both the rule and persistent site access. If the first picker is
 canceled before a rule is saved, reset remains available to revoke that access.
 
+### AC-011: Continuous picker editing
+
+One picker session can add two or more elements and remove an element by clicking
+it again. The live count and selected markers match the draft. No draft change is
+stored until Done is selected. Done applies the final rule without reload;
+Cancel and Escape preserve the original stored rule and filter state.
+
+### AC-012: Pause and resume
+
+Pausing a current-page filter restores the full page immediately while retaining
+the rule. Resuming restores the filtered view immediately. Resetting the site or
+removing the final page element deletes the applicable pause entry.
+
+### AC-013: Popup rule management
+
+The popup lists each current-page element and its count. Removing one entry
+immediately reapplies the remaining rule without changing other entries or
+origins. Removing the final entry restores the full page.
+
+### AC-014: Version visibility
+
+The popup displays the installed extension version from the runtime manifest so
+the user can identify the active build without opening Chrome's extension
+management page.
+
 ## 10. Known limitations
 
 1. Third-party markup changes can invalidate saved selectors.
@@ -429,8 +516,6 @@ canceled before a rule is saved, reset remains available to revoke that access.
 
 The following items require separate approval and specification:
 
-- visual rule management and per-element deletion;
-- temporary filter disablement without deleting rules;
 - JSON import and export;
 - optional Chrome Sync support;
 - manual selector editing and fallback selectors;
@@ -444,10 +529,9 @@ The following items require separate approval and specification:
 ## 12. Open decisions
 
 1. Should a rule cover an exact pathname or a user-defined URL pattern?
-2. Should filters support temporary disablement?
-3. Should site reset optionally include subdomains?
-4. Should the product ever block network requests?
-5. Should PureView provide a global rule-management page?
+2. Should site reset optionally include subdomains?
+3. Should the product ever block network requests?
+4. Should PureView provide a global rule-management page?
 
 ## 13. Document history
 
@@ -456,3 +540,4 @@ The following items require separate approval and specification:
 | 0.1              | 2026-08-23 | Documented the PureView 0.2.0 prototype. |
 | 0.2              | 2026-08-23 | Added multiple allowed elements and rule migration for 0.3.0. |
 | 0.3              | 2026-08-23 | Translated the specification to English and added GPL, GitHub, privacy, Chrome Web Store, and explicit consent-gate requirements for PureView 0.4.0. |
+| 0.4              | 2026-08-27 | Added continuous draft-based selection, Done/Cancel, immediate application, popup rule management, pause/resume, and automated acceptance coverage for PureView 0.5.0. |
