@@ -89,10 +89,9 @@ Follow `store-assets/README.md`. Use 1280x800 PNG or JPEG images with square
 corners and no padding. Screenshots must show the actual extension experience,
 not a generated or conceptual interface.
 
-The existing `store-assets/screenshot-01-popup-1280x800.png` documents version
-0.4.0. After the 0.5.0 manual test, replace it with a real 1280x800 capture of
-the updated popup or add a new real screenshot of the continuous picker. Review
-every image in the Developer Dashboard preview before submission.
+Four reviewed 1280x800 screenshots document version 0.5.0. Upload them in the
+order defined by `store-assets/README.md` and review every image in the Developer
+Dashboard preview before submission.
 
 ## 7. Update the Store item
 

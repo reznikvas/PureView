@@ -139,11 +139,9 @@ Verify that every URL is publicly accessible before submission.
 - Extension/store icon: `extension/icons/icon128.png` (128x128 PNG with
   transparent padding).
 - Required small promo tile: `store-assets/promo-small-440x280.png`.
-- Required screenshot: `store-assets/screenshot-01-popup-1280x800.png` is a real
-  1280x800 Chrome screenshot. Additional optional screenshots are documented in
-  `store-assets/README.md`.
-- Before submitting version 0.5.0, replace or supplement the existing screenshot
-  with a real capture of the updated popup and continuous picker toolbar.
+- Four real 1280x800 Chrome screenshots document the updated popup, continuous
+  picker, immediate filtered result, and saved-rule management. Upload them in
+  the order documented in `store-assets/README.md`.
 - Optional marquee tile: not prepared for the initial unlisted release.
 
 ## Distribution

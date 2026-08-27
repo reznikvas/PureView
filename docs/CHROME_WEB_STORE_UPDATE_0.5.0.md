@@ -50,20 +50,19 @@ The Privacy Practices categories remain:
 The public privacy policy must show an effective date of August 27, 2026 and
 must disclose that pause/resume state is stored locally.
 
-## Screenshot required before submission
+## Screenshots
 
-Replace or supplement the 0.4.0 screenshot with at least one real Chrome
-screenshot showing the 0.5.0 interface. Use 1280x800 PNG/JPEG or 640x400 with
-square corners and no padding. A recommended screenshot shows:
+Four real 1280x800 Chrome screenshots are ready under `store-assets/`. They show:
 
-- the PureView popup opened on a non-sensitive page;
-- two saved elements and the selected-element count;
-- the Pause filter control;
-- the `v0.5.0` version badge.
+- the initial/reset popup and version badge;
+- continuous selection with selected outlines, live count, and Done/Cancel;
+- the immediate filtered result;
+- the popup with three saved elements, individual Remove controls, Pause filter,
+  and the `v0.5.0` badge.
 
-An optional second screenshot can show the continuous picker with selected
-outlines, its live count, and Done/Cancel controls. Do not use generated UI or a
-mockup; Chrome Web Store screenshots must show the actual extension experience.
+They were reviewed to exclude account avatars and other personal information.
+Upload them in the order documented in `store-assets/README.md`. The images are
+real Chrome captures rather than generated UI or mockups.
 
 ## Dashboard submission
 
