@@ -9,9 +9,11 @@ parts of a web page and hide everything else. Instead of maintaining a list of
 advertising domains, PureView uses a visual allowlist: select one or more page
 elements, reload the page, and only the selected DOM branches remain visible.
 
-> Project status: pre-release, version 0.4.0. The unlisted Chrome Web Store link
-> will be added after the first review is complete.
+> Current release: version 0.4.0, published as an unlisted Chrome Web Store
+> extension.
 
+- Install from Chrome Web Store:
+  <https://chromewebstore.google.com/detail/pureview/mjdchlffjjnpoijpfajekkhhgbnmacmm>
 - Website: <https://pureviewtool.com/>
 - Support: <https://pureviewtool.com/support/>
 - Privacy policy: <https://pureviewtool.com/privacy/>
