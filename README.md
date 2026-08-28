@@ -10,8 +10,8 @@ advertising domains, PureView uses a visual allowlist: select one or more page
 elements, confirm the selection, and only the selected DOM branches remain
 visible.
 
-> Current source release: version 0.5.0. The Chrome Web Store continues to serve
-> version 0.4.0 until the update is reviewed and published.
+> Current release: version 0.5.0, published as an unlisted Chrome Web Store
+> extension and available through the direct installation link below.
 
 - Install from Chrome Web Store:
   <https://chromewebstore.google.com/detail/pureview/mjdchlffjjnpoijpfajekkhhgbnmacmm>
